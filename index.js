@@ -3,7 +3,8 @@ var dns = require('dns');
 var os = require( 'os' );
 
 var networkInterfaces = os.networkInterfaces( );
-var hostaddress = networkInterfaces.en1[0].address || '127.0.0.1';
+var hostkeys = Object.keys(networkInterfaces);
+var hostaddress = networkInterfaces[hostkeys[1]][0]["address"] || '127.0.0.1';
 
 var clientStore = require('./clients');
 var chanels = require('./channels');
