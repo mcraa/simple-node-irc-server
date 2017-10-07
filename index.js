@@ -92,3 +92,10 @@ function broadcast(message){
         clientStore.clients[keys[i]].socket.write(message);        
     }
 }
+
+process.on('SIGTERM', function () {
+    console.log("Bye");
+    server.close(function () {
+      process.exit(0);
+    });
+});

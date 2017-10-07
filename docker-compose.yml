@@ -1,0 +1,10 @@
+version: '2'
+
+services:
+  simple-node-irc-server:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: node-irc
+    ports:
+      - "6667:6667"
