@@ -1,9 +1,15 @@
 var net = require('net');
+var dns = require('dns');
+var os = require( 'os' );
+
+var networkInterfaces = os.networkInterfaces( );
+var hostaddress = networkInterfaces.en1[0].address || '127.0.0.1';
+
 var clientStore = require('./clients');
 var chanels = require('./channels');
 var server = net.createServer(function(socket) {
     socket.write('Connected to simple-node-irc-server\r\n');
-    socket.pipe(socket);
+    //socket.pipe(socket);
     socket.on("data", function(d){
         console.log(d.toString());
 
@@ -11,8 +17,7 @@ var server = net.createServer(function(socket) {
     })
 });
 var pass = "pwd";
-
-server.listen(6667, '127.0.0.1');
+server.listen(6667);
 
 function handleMessage(data, socket){
     var lines = data.toString().split("\r\n");
@@ -29,24 +34,31 @@ function handleMessage(data, socket){
         }
 
         switch (parts[0]) {
-            case "CAP":
-                if(parts[1] == "LS"){
-                    socket.write("CAP * LS :\r\n")
-                }
-            break;
             case "NICK":
                 clientStore.buildClient(socket, "nick", parts[1]);
             break;
-            case "USER":
-                clientStore.buildClient(socket, "user", parts[1]);
+            case "USER":  
+                clientStore.buildClient(socket, "user", parts[1] + "@" + parts[3]);
+                var nick = clientStore.getClientName(socket).split("!")[0]; 
+                socket.write("PING :" + Math.floor(Math.random()*10000).toString() + "\r\n");
+                socket.write(":"+hostaddress+" 001 " + nick + " :Welcome \r\n");                
+                socket.write(":"+hostaddress+" 002 " + nick + " :\r\n");                
+                socket.write(":"+hostaddress+" 003 " + nick + " :\r\n");                
+                socket.write(":"+hostaddress+" 004 " + nick + " :\r\n");                
+                socket.write(":"+hostaddress+" 005 " + nick + " :\r\n");  
+                socket.write(":"+hostaddress+" 375 " + nick + " :\r\n");  
+                socket.write(":"+hostaddress+" 372 " + nick + " :\r\n");  
+                socket.write(":"+hostaddress+" 376 " + nick + " :\r\n");  
+                socket.write(":"+nick+" MODE " + nick + " :+xi\r\n");                                
             break;
             case "JOIN":
                 var name = clientStore.getClientName(socket); 
                 if (clientStore.joinChannel(socket, parts[1])){
-                    broadcast(":" + name + " JOIN " + parts[1]+ "\r\n");
-                    socket.write(":127.0.0.1 332 " + name.split("!")[0] + " " + parts[1] + " :Dat topic\r\n");
-                    socket.write(":127.0.0.1 353 " + name.split("!")[0] + " = " + parts[1] + " :"+name.split("!")[0]+"\r\n");
-                    socket.write(":127.0.0.1 366 " + name.split("!")[0] + " " + parts[1] + " :End of NAMES list\r\n");
+                    broadcast(":" + name + " JOIN :" + parts[1]+ "\r\n");
+                    console.log(":" + name + " JOIN :" + parts[1]+ "\r\n");
+                    socket.write(":"+hostaddress+" 332 " + name.split("!")[0] + " " + parts[1] + " :Dat topic\r\n");
+                    socket.write(":"+hostaddress+" 353 " + name.split("!")[0] + " = " + parts[1] + " :"+name.split("!")[0]+"\r\n");
+                    socket.write(":"+hostaddress+" 366 " + name.split("!")[0] + " " + parts[1] + " :End of NAMES list\r\n");
                 }
             break;
             case "LIST":
@@ -54,26 +66,28 @@ function handleMessage(data, socket){
             
                 var chans = chanels.names;
                 for (var i = 0; i < chans.length; i++) {
-                    socket.write(":127.0.0.1 322 " + nick + " " + chans[i] + " " + chanels.list[chans[i]].users.length + " :"+chanels.list[chans[i]].topic+ "\r\n");                    
+                    socket.write(":"+hostaddress+" 322 " + nick + " " + chans[i] + " " + chanels.list[chans[i]].users.length + " :"+chanels.list[chans[i]].topic+ "\r\n");                    
                 }
-                socket.write(":127.0.0.1 323 :End of LIST\r\n"); 
+                socket.write(":"+hostaddress+" 323 :End of LIST\r\n"); 
             break;    
             case "NAMES":
                 var nick = clientStore.getClientName(socket).split("!")[0];             
-                socket.write(":127.0.0.1 353 " + nick + " = " + parts[1] + " :"+nick+"\r\n");
-                socket.write(":127.0.0.1 366 " + nick + " " + parts[1] + " :End of NAMES list\r\n");
+                socket.write(":"+hostaddress+" 353 " + nick + " = " + parts[1] + " :"+nick+"\r\n");
+                socket.write(":"+hostaddress+" 366 " + nick + " " + parts[1] + " :End of NAMES list\r\n");
+            break;
+            case "PING":       
+                socket.write(":"+hostaddress+" PONG " + hostaddress + " :" + parts[1] + "\r\n");                
             break;
             case "PART":
                 //leave
-            break;
-        
-
+            break;     
         }
     }
 }
 
 function broadcast(message){
-    for (var i = 0; i < clientStore.clients.length; i++) {
-        clientStore.clients[i].socket.write(message);        
+    var keys = Object.keys(clientStore.clients)
+    for (var i = 0; i < keys.length; i++) {
+        clientStore.clients[keys[i]].socket.write(message);        
     }
 }
