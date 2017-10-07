@@ -1,28 +1,30 @@
 var clients = {};
 
 exports.clients = clients;
+exports.names = function(){
+    var keys = Object.keys(clients);
+    var res = [];
+    for (var i = 0; i < keys.length; i++) {
+         res.push(clients[keys[i]].nick);        
+    }
+}
 
 function makeSocketKey(socket){
     return socket.remoteAddress + ":" + socket.remotePort;
 }
 
-exports.buildClient = function(socket, msgType, msgContent){
+exports.buildClient = function(socket, prop, msgContent){
     var key = makeSocketKey(socket);
-    if (clients[key] == undefined){
+    if (clients[key] == undefined && prop == undefined){
         clients[key] = {};
         clients[key].channels = [];
         clients[key].socket = socket;
-    }
+    } 
 
-    switch (msgType) {
-        case "NICK":
-            clients[key].nick = msgContent;
-            break;
-        case "USER":
-            clients[key].user = msgContent;
-            break;
-        
-    }
+    if (prop != undefined)
+         clients[key][prop] = msgContent;   
+         
+    return true;
 }
 
 exports.joinChannel = function(socket, channel){
