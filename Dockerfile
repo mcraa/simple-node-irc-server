@@ -1,5 +1,5 @@
 FROM node
 WORKDIR /app
-COPY . .
+COPY ./*.js* ./
 EXPOSE 6667
 ENTRYPOINT [ "node", "index" ]
