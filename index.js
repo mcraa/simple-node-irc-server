@@ -10,13 +10,12 @@ var clientStore = require('./clients');
 var chanels = require('./channels');
 var server = net.createServer(function(socket) {
     socket.write('Connected to simple-node-irc-server\r\n');
-    //socket.pipe(socket);
     socket.on("data", function(d){
         console.log(d.toString());
-
         handleMessage(d, socket);
     })
 });
+
 var pass = "pwd";
 server.listen(6667);
 
@@ -24,7 +23,8 @@ function handleMessage(data, socket){
     var lines = data.toString().split("\r\n");
 
     for (var i = 0; i < lines.length; i++) {
-        var parts = lines[i].split(" ");
+        var params = lines[i].split(":");
+        var parts = params[0].split(" ");
         
         if (clientStore.clients[socket.remoteAddress + ":" + socket.remotePort] == undefined){
             if (parts[0] == "PASS"){
@@ -36,7 +36,16 @@ function handleMessage(data, socket){
 
         switch (parts[0]) {
             case "NICK":
-                clientStore.buildClient(socket, "nick", parts[1]);
+                var nick = clientStore.getClientName(socket).split("!")[0]; 
+                if (parts[1] == undefined || parts[1] == ""){
+                    socket.write(":"+hostaddress+" 431 " + nick + " :No nickname given \r\n");
+                } else {
+                    if (clientStore.names().indexOf(parts[1]) > -1) {
+                        socket.write(":"+hostaddress+" 436 " + nick + " :Nick collision \r\n");
+                    } else {
+                        clientStore.buildClient(socket, "nick", parts[1]);
+                    }
+                }
             break;
             case "USER":  
                 clientStore.buildClient(socket, "user", parts[1] + "@" + parts[3]);
@@ -91,11 +100,19 @@ function handleMessage(data, socket){
                 var leavingError = chanels.leave(nick, parts[1]);
                 clientStore.partChannel(socket, parts[1]);
                 if (leavingError){
-                    socket.write(":"+hostaddress+"  " + leavingError +"  " +nick + "\r\n");                
+                    socket.write(":"+hostaddress+ "  " + leavingError + "  " + nick + "\r\n");                
                 }
             break;     
             case "PRIVMSG":
-                //send msg
+                var from = clientStore.getClientName(socket);
+                if (parts[1].indexOf("#") == 0){
+                    for (var i = 0; i < chanels.list[parts[1]].users.length; i++) {
+                        if (chanels.list[parts[1]].users[i] != parts[1])
+                            clientStore.getSocketByNick(chanels.list[parts[1]].users[i]).write(":"+ from + " PRIVMSG " + parts[1] + " : "+ params[1] +"\r\n");
+                    }
+                } else {
+                    clientStore.getSocketByNick(parts[1]).write(":"+ from + " PRIVMSG " + parts[1] + " : "+ params[1] +"\r\n");
+                }
             break;     
         }
     }

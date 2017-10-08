@@ -43,6 +43,15 @@ exports.partChannel = function(socket, channel){
     clients[key].channels.splice(clients[key].channels.indexOf(clients[key].nick, 1));
 }
 
+exports.getSocketByNick = function(nick){
+    var keys = Object.keys(clients);
+    for (var i = 0; i < keys.length; i++) {
+         if (clients[keys[i]].nick == nick) {
+             return clients[keys[i]].socket;
+         }   
+    }
+}
+
 exports.getClientName = function(socket){
     var key = makeSocketKey(socket);    
     return clients[key].nick + "!" + clients[key].user;
