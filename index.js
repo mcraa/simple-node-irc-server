@@ -55,6 +55,7 @@ function handleMessage(data, socket){
             case "JOIN":
                 var name = clientStore.getClientName(socket); 
                 if (clientStore.joinChannel(socket, parts[1])){
+                    chanels.joinOrCreate(name.split("!")[0], parts[1]);
                     broadcast(":" + name + " JOIN :" + parts[1]+ "\r\n");
                     console.log(":" + name + " JOIN :" + parts[1]+ "\r\n");
                     socket.write(":"+hostaddress+" 332 " + name.split("!")[0] + " " + parts[1] + " :Dat topic\r\n");
@@ -65,7 +66,7 @@ function handleMessage(data, socket){
             case "LIST":
                 var nick = clientStore.getClientName(socket).split("!")[0]; 
             
-                var chans = chanels.names;
+                var chans = chanels.channelNames;
                 for (var i = 0; i < chans.length; i++) {
                     socket.write(":"+hostaddress+" 322 " + nick + " " + chans[i] + " " + chanels.list[chans[i]].users.length + " :"+chanels.list[chans[i]].topic+ "\r\n");                    
                 }
@@ -73,14 +74,28 @@ function handleMessage(data, socket){
             break;    
             case "NAMES":
                 var nick = clientStore.getClientName(socket).split("!")[0];             
-                socket.write(":"+hostaddress+" 353 " + nick + " = " + parts[1] + " :"+nick+"\r\n");
+                var reply = ":"+hostaddress+" 353 " + nick + " = " + parts[1] + " :"
+                if (parts[1] != undefined && parts[1].indexOf("#") == 0){
+                    reply += chanels.list[parts[1]].users.join(" ");
+                } else {
+                    reply += clientStore.names().join(" ");
+                }
+                socket.write(reply+"\r\n");
                 socket.write(":"+hostaddress+" 366 " + nick + " " + parts[1] + " :End of NAMES list\r\n");
             break;
             case "PING":       
                 socket.write(":"+hostaddress+" PONG " + hostaddress + " :" + parts[1] + "\r\n");                
             break;
             case "PART":
-                //leave
+                var nick = clientStore.getClientName(socket).split("!")[0];                         
+                var leavingError = chanels.leave(nick, parts[1]);
+                clientStore.partChannel(socket, parts[1]);
+                if (leavingError){
+                    socket.write(":"+hostaddress+"  " + leavingError +"  " +nick + "\r\n");                
+                }
+            break;     
+            case "PRIVMSG":
+                //send msg
             break;     
         }
     }

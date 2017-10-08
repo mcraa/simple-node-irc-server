@@ -7,6 +7,7 @@ exports.names = function(){
     for (var i = 0; i < keys.length; i++) {
          res.push(clients[keys[i]].nick);        
     }
+    return res;
 }
 
 function makeSocketKey(socket){
@@ -35,6 +36,11 @@ exports.joinChannel = function(socket, channel){
     }
 
     return false;
+}
+
+exports.partChannel = function(socket, channel){
+    var key = makeSocketKey(socket);    
+    clients[key].channels.splice(clients[key].channels.indexOf(clients[key].nick, 1));
 }
 
 exports.getClientName = function(socket){
