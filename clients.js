@@ -16,7 +16,7 @@ function makeSocketKey(socket){
 
 exports.buildClient = function(socket, prop, msgContent){
     var key = makeSocketKey(socket);
-    if (clients[key] == undefined && prop == undefined){
+    if (clients[key] == undefined){
         clients[key] = {};
         clients[key].channels = [];
         clients[key].socket = socket;

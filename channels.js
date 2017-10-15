@@ -1,3 +1,5 @@
+var replies = require('./replies').codes;
+
 var chanels = {
     "#default": {
         topic: "no topic",
@@ -27,10 +29,10 @@ exports.joinOrCreate = function(nick, channel){
 
 exports.leave = function(nick, channel){
     if (chanels[channel] == undefined)
-        return "403";
+        return replies.ERR_NOSUCHCHANNEL;
 
     if (chanels[channel].users.indexOf(nick) < 0)
-        return "401";
+        return replies.ERR_NOSUCHNICK;
 
     chanels[channel].users.splice(chanels[channel].users.indexOf(nick),1)
     return false;
