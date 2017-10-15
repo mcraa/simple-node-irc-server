@@ -16,7 +16,7 @@ var chanels = {
 };
 
 exports.list = chanels;
-exports.channelNames = Object.keys(chanels);
+exports.channelNames = function() { return Object.keys(chanels); }
 exports.joinOrCreate = function(nick, channel){
     if(chanels[channel] == undefined){
         chanels[channel] = {}

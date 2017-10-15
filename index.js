@@ -83,7 +83,7 @@ function handleMessage(data, socket){
             case "LIST":
                 var nick = clientStore.getClientName(socket).split("!")[0]; 
             
-                var chans = chanels.channelNames;
+                var chans = chanels.channelNames();
                 for (var i = 0; i < chans.length; i++) {
                     socket.write(respondMessage(hostaddress, [replies.RPL_LIST, nick, chans[i], chanels.list[chans[i]].users.length], chanels.list[chans[i]].topic));                    
                 }
@@ -114,12 +114,20 @@ function handleMessage(data, socket){
                 var from = clientStore.getClientName(socket);
                 var nick = from.split("!")[0];
                 if (message.params[0].indexOf("#") == 0 || message.params[0].indexOf("&") == 0){
+                    if (chanels.list[message.params[0]] == undefined){
+                        socket.write(hostaddress, [replies.ERR_NOSUCHNICK, nick], "No such channel")                        
+                    }
                     for (var i = 0; i < chanels.list[message.params[0]].users.length; i++) {
                         if (chanels.list[message.params[0]].users[i] != nick)
                             clientStore.getSocketByNick(chanels.list[message.params[0]].users[i]).write(respondMessage(from, ["PRIVMSG", message.params[0]], message.params[1]));
                     }
                 } else {
-                    clientStore.getSocketByNick(message.params[0]).write(respondMessage(from, ["PRIVMSG", message.params[0]], message.params[1]));
+                    var recipient = clientStore.getSocketByNick(message.params[0]);
+                    if (recipient == null) {
+                        socket.write(hostaddress, [replies.ERR_NOSUCHNICK, nick], "No such nick")                                                
+                    }
+
+                    recipient.write(respondMessage(from, ["PRIVMSG", message.params[0]], message.params[1]));
                 }
             break;     
         }

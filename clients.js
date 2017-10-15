@@ -50,6 +50,8 @@ exports.getSocketByNick = function(nick){
              return clients[keys[i]].socket;
          }   
     }
+
+    return null;
 }
 
 exports.getClientName = function(socket){
